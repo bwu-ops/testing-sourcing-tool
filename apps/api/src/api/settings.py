@@ -74,6 +74,10 @@ class AppSettings(BaseSettings):
     anthropic_api_key: str = ""
     llm_timeout_seconds: float = 20.0
     llm_max_retries: int = 2
+    web_search_provider: str = "google_programmable"
+    google_programmable_search_api_key: str = ""
+    google_programmable_search_engine_id: str = ""
+    google_programmable_search_timeout_seconds: float = 10.0
     # SECURITY: when empty, scheduler endpoints skip auth in local/test — must be set in production
     scheduler_shared_token: str = ""
 
