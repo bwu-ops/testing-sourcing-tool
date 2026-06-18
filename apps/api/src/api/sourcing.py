@@ -12,7 +12,6 @@ from api.models import Candidate, ProjectCandidate, SourcingProject
 from api.outbound_http import request as outbound_request
 from api.settings import get_settings
 
-
 PAYMENTS_TARGET_COMPANIES = [
     "Stripe",
     "Circle",
@@ -329,5 +328,3 @@ async def candidate_project_count(session: AsyncSession, candidate_id: str) -> i
 
 def list_to_graphql(value: str | None) -> list[str]:
     return loads_list(value)
-
-

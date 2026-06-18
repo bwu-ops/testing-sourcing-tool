@@ -26,7 +26,8 @@
     "clsx": "^2.1.1",
     "graphql": "^16.13.1",
     "lucide-react": "^0.577.0",
-    "next": "16.1.7",
+    "next": "^16.2.9",
+    "postcss": "^8.5.15",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "rxjs": "^7.8.2",
@@ -44,11 +45,14 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.7",
+    "eslint-config-next": "^16.2.9",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "3.8.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.0.18"
+  },
+  "resolutions": {
+    "**/postcss": "8.5.15"
   }
 }

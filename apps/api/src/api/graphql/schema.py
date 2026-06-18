@@ -191,9 +191,7 @@ class Query:
             )
             rows = (
                 await op.session.execute(
-                    select(Candidate)
-                    .where(Candidate.id.in_(candidate_id_query))
-                    .order_by(Candidate.updated_at.desc())
+                    select(Candidate).where(Candidate.id.in_(candidate_id_query)).order_by(Candidate.updated_at.desc())
                 )
             ).scalars()
             candidates = list(rows)
@@ -484,5 +482,5 @@ class DepthLimitRule(ASTValidationRule):
 schema = strawberry.Schema(
     query=Query,
     mutation=Mutation,
-    extensions=[strawberry.extensions.AddValidationRules([DepthLimitRule])],
+    extensions=[lambda: strawberry.extensions.AddValidationRules([DepthLimitRule])],
 )

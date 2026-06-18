@@ -88,7 +88,9 @@ const CREATE_SOURCING_PROJECT = gql`
 `
 
 const APPROVE_SOURCING_PROJECT = gql`
-  mutation ApproveSourcingProjectFromDashboard($input: ApproveSourcingCalibrationInput!) {
+  mutation ApproveSourcingProjectFromDashboard(
+    $input: ApproveSourcingCalibrationInput!
+  ) {
     approveSourcingProjectCalibration(input: $input) {
       ...SourcingProjectFieldsForDashboard
     }
@@ -106,7 +108,9 @@ const RUN_SOURCING_PROJECT_SEARCH = gql`
 `
 
 const SET_SOURCING_CANDIDATE_FEEDBACK = gql`
-  mutation SetSourcingCandidateFeedbackFromDashboard($input: SetCandidateFeedbackInput!) {
+  mutation SetSourcingCandidateFeedbackFromDashboard(
+    $input: SetCandidateFeedbackInput!
+  ) {
     setSourcingCandidateFeedback(input: $input) {
       id
       feedbackStatus
@@ -196,6 +200,9 @@ const SourcingDashboard = () => {
   const [companyWebsite, setCompanyWebsite] = useState('')
   const [notes, setNotes] = useState('')
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [draftCalibrationProjectId, setDraftCalibrationProjectId] = useState<
+    string | null
+  >(null)
   const [targetCompaniesText, setTargetCompaniesText] = useState('')
   const [scorecardText, setScorecardText] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -234,11 +241,42 @@ const SourcingDashboard = () => {
     SetSourcingCandidateFeedbackFromDashboardMutationVariables
   >(SET_SOURCING_CANDIDATE_FEEDBACK)
 
-  const projects = data?.sourcingProjects ?? []
+  const projects = useMemo(() => data?.sourcingProjects ?? [], [data?.sourcingProjects])
   const selectedProject = useMemo(
-    () => projects.find((project) => project.id === selectedProjectId) ?? projects[0] ?? null,
+    () =>
+      projects.find((project) => project.id === selectedProjectId) ??
+      projects[0] ??
+      null,
     [projects, selectedProjectId]
   )
+  const defaultTargetCompaniesText = useMemo(() => {
+    if (!selectedProject) {
+      return ''
+    }
+    return (
+      selectedProject.approvedTargetCompanies.length > 0
+        ? selectedProject.approvedTargetCompanies
+        : selectedProject.generatedTargetCompanies
+    ).join('\n')
+  }, [selectedProject])
+  const defaultScorecardText = useMemo(() => {
+    if (!selectedProject) {
+      return ''
+    }
+    return (
+      selectedProject.approvedScorecard.length > 0
+        ? selectedProject.approvedScorecard
+        : selectedProject.generatedScorecard
+    ).join('\n')
+  }, [selectedProject])
+  const editableTargetCompaniesText =
+    draftCalibrationProjectId === selectedProject?.id
+      ? targetCompaniesText
+      : defaultTargetCompaniesText
+  const editableScorecardText =
+    draftCalibrationProjectId === selectedProject?.id
+      ? scorecardText
+      : defaultScorecardText
 
   const shouldRedirectToLogin =
     isUnauthorized || (!currentUserLoading && !currentUser && !currentUserError)
@@ -248,25 +286,6 @@ const SourcingDashboard = () => {
       void router.replace('/login')
     }
   }, [router, shouldRedirectToLogin])
-
-  useEffect(() => {
-    if (!selectedProject) {
-      return
-    }
-    setSelectedProjectId(selectedProject.id)
-    setTargetCompaniesText(
-      (selectedProject.approvedTargetCompanies.length > 0
-        ? selectedProject.approvedTargetCompanies
-        : selectedProject.generatedTargetCompanies
-      ).join('\n')
-    )
-    setScorecardText(
-      (selectedProject.approvedScorecard.length > 0
-        ? selectedProject.approvedScorecard
-        : selectedProject.generatedScorecard
-      ).join('\n')
-    )
-  }, [selectedProject])
 
   const handleCreateProject = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -280,6 +299,7 @@ const SourcingDashboard = () => {
       const project = result.data?.createSourcingProject
       if (project) {
         setSelectedProjectId(project.id)
+        setDraftCalibrationProjectId(null)
       }
       setJobDescription('')
       setCompanyWebsite('')
@@ -314,8 +334,8 @@ const SourcingDashboard = () => {
         variables: {
           input: {
             projectId: selectedProject.id,
-            targetCompanies: splitLines(targetCompaniesText),
-            scorecard: splitLines(scorecardText),
+            targetCompanies: splitLines(editableTargetCompaniesText),
+            scorecard: splitLines(editableScorecardText),
           },
         },
       })
@@ -426,7 +446,9 @@ const SourcingDashboard = () => {
           <SectionContainer title="Saved projects" titleClassName="text-base">
             <div className="mt-4 flex flex-col gap-2">
               {projectsLoading ? (
-                <div className="text-sm text-secondary-foreground">Loading projects...</div>
+                <div className="text-sm text-secondary-foreground">
+                  Loading projects...
+                </div>
               ) : null}
               {!projectsLoading && projects.length === 0 ? (
                 <div className="text-sm text-secondary-foreground">
@@ -441,12 +463,18 @@ const SourcingDashboard = () => {
                       : 'border-neutral-750 bg-neutral-850 hover:border-neutral-700'
                   }`}
                   key={project.id}
-                  onClick={() => setSelectedProjectId(project.id)}
+                  onClick={() => {
+                    setSelectedProjectId(project.id)
+                    setDraftCalibrationProjectId(null)
+                  }}
                   type="button"
                 >
-                  <div className="font-medium text-primary-foreground">{project.name}</div>
+                  <div className="font-medium text-primary-foreground">
+                    {project.name}
+                  </div>
                   <div className="mt-1 text-xs text-secondary-foreground">
-                    {statusLabel(project.status)} · {project.projectCandidates.length} candidates
+                    {statusLabel(project.status)} · {project.projectCandidates.length}{' '}
+                    candidates
                   </div>
                 </button>
               ))}
@@ -465,8 +493,14 @@ const SourcingDashboard = () => {
                     </span>
                     <Textarea
                       rows={10}
-                      value={targetCompaniesText}
-                      onChange={(event) => setTargetCompaniesText(event.target.value)}
+                      value={editableTargetCompaniesText}
+                      onChange={(event) => {
+                        if (draftCalibrationProjectId !== selectedProject.id) {
+                          setScorecardText(defaultScorecardText)
+                        }
+                        setDraftCalibrationProjectId(selectedProject.id)
+                        setTargetCompaniesText(event.target.value)
+                      }}
                     />
                   </label>
                   <label className="flex flex-col gap-2 text-sm">
@@ -475,17 +509,29 @@ const SourcingDashboard = () => {
                     </span>
                     <Textarea
                       rows={10}
-                      value={scorecardText}
-                      onChange={(event) => setScorecardText(event.target.value)}
+                      value={editableScorecardText}
+                      onChange={(event) => {
+                        if (draftCalibrationProjectId !== selectedProject.id) {
+                          setTargetCompaniesText(defaultTargetCompaniesText)
+                        }
+                        setDraftCalibrationProjectId(selectedProject.id)
+                        setScorecardText(event.target.value)
+                      }}
                     />
                   </label>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button disabled={approvingProject} onClick={() => void handleApprove()} type="button">
+                  <Button
+                    disabled={approvingProject}
+                    onClick={() => void handleApprove()}
+                    type="button"
+                  >
                     {approvingProject ? 'Approving...' : 'Approve calibration'}
                   </Button>
                   <Button
-                    disabled={runningSearch || selectedProject.status === 'awaiting_calibration'}
+                    disabled={
+                      runningSearch || selectedProject.status === 'awaiting_calibration'
+                    }
                     onClick={() => void handleRunSearch()}
                     type="button"
                     variant="secondary"
@@ -547,7 +593,10 @@ const CandidateCard = ({
   onFeedback,
 }: {
   projectCandidate: ProjectCandidate
-  onFeedback: (projectCandidate: ProjectCandidate, feedbackStatus: string) => Promise<void>
+  onFeedback: (
+    projectCandidate: ProjectCandidate,
+    feedbackStatus: string
+  ) => Promise<void>
 }) => {
   const candidate = projectCandidate.candidate
   return (
@@ -577,7 +626,9 @@ const CandidateCard = ({
           <ScorePill label="Sources" value={projectCandidate.sourceConfidence} />
         </div>
       </div>
-      <p className="mt-3 text-sm text-secondary-foreground">{projectCandidate.rationale}</p>
+      <p className="mt-3 text-sm text-secondary-foreground">
+        {projectCandidate.rationale}
+      </p>
       <div className="mt-3 flex flex-wrap gap-2 text-xs">
         <span className="rounded-full bg-neutral-750 px-2 py-1">
           Early-stage: {projectCandidate.earlyStageSignal}
