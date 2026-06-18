@@ -1,6 +1,32 @@
+input ApproveSourcingCalibrationInput {
+  projectId: String!
+  scorecard: [String!]!
+  targetCompanies: [String!]!
+}
+
+type CandidateType {
+  associatedProjectCount: Int!
+  currentCompany: String!
+  currentTitle: String!
+  fullName: String!
+  githubUrl: String!
+  id: String!
+  linkedinSlug: String!
+  linkedinUrl: String!
+  location: String!
+  locationConfidence: String!
+  sourceUrls: [String!]!
+}
+
 input CreateNoteInput {
   body: String! = ""
   title: String!
+}
+
+input CreateSourcingProjectInput {
+  companyWebsite: String!
+  jobDescription: String!
+  notes: String! = ""
 }
 
 type CurrentUserType {
@@ -9,7 +35,11 @@ type CurrentUserType {
 }
 
 type Mutation {
+  approveSourcingProjectCalibration(input: ApproveSourcingCalibrationInput!): SourcingProjectType!
   createNote(input: CreateNoteInput!): NoteType!
+  createSourcingProject(input: CreateSourcingProjectInput!): SourcingProjectType!
+  runSourcingProjectSearch(projectId: String!): SourcingProjectType!
+  setSourcingCandidateFeedback(input: SetCandidateFeedbackInput!): ProjectCandidateType!
   startNoteSummaryRun: TaskRunType!
   summarizeNote(noteId: String!): NoteType!
 }
@@ -24,12 +54,51 @@ type NoteType {
   title: String!
 }
 
+type ProjectCandidateType {
+  candidate: CandidateType!
+  domainTags: [String!]!
+  earlyStageSignal: String!
+  feedbackStatus: String
+  fitScore: Int!
+  id: String!
+  mustHaveScore: String!
+  rationale: String!
+  sourceConfidence: String!
+  targetCompanyMatch: String!
+}
+
 type Query {
+  candidates: [CandidateType!]!
   currentUser: CurrentUserType!
   notes: [NoteType!]!
+  sourcingProject(projectId: String!): SourcingProjectType
+  sourcingProjects: [SourcingProjectType!]!
   taskRun(taskRunId: String!): TaskRunType
   taskRuns: [TaskRunType!]!
   viewer: ViewerType!
+}
+
+input SetCandidateFeedbackInput {
+  feedbackStatus: String!
+  projectCandidateId: String!
+}
+
+type SourcingProjectType {
+  approvedScorecard: [String!]!
+  approvedTargetCompanies: [String!]!
+  candidateArchetypes: [String!]!
+  companyWebsite: String!
+  createdAt: String!
+  generatedScorecard: [String!]!
+  generatedTargetCompanies: [String!]!
+  id: String!
+  jobDescription: String!
+  name: String!
+  notes: String!
+  projectCandidates: [ProjectCandidateType!]!
+  searchKeywords: [String!]!
+  status: String!
+  updatedAt: String!
 }
 
 type TaskRunType {
